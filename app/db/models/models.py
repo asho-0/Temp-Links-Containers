@@ -12,7 +12,11 @@ class UserTable(Base):
         String(50), unique=True, nullable=False
     )
     email: Mapped[str] = mapped_column(String(255), unique=True, nullable=False)
+    email_verified: Mapped[bool] = mapped_column(default=False)
     hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    verification_token: Mapped[str | None] = mapped_column(
+        String(512), nullable=True
+    )
 
     secrets: Mapped[list["SecretTable"]] = relationship(
         "SecretTable", back_populates="user", cascade="all, delete-orphan"

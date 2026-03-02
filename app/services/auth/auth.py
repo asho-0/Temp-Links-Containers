@@ -1,14 +1,22 @@
+# app/services/auth/auth_service.py
 import logging
 
 import bcrypt
 
 from app.db.models import UserTable
 from app.db.repositories.auth.user_repo import UserRepository
-from app.core.security import create_access_token
+from app.core.security import (
+    create_access_token,
+    create_verification_token,
+    decode_verification_token,
+)
+from app.services.auth.email import EmailService
 from app.services.auth.exceptions import (
     EmailAlreadyRegistered,
     UsernameTaken,
     InvalidCredentials,
+    EmailNotVerified,
+    InvalidVerificationToken,
 )
 
 logger = logging.getLogger(__name__)
@@ -23,8 +31,9 @@ def _verify_password(password: str, hashed: str) -> bool:
 
 
 class AuthService:
-    def __init__(self, repo: UserRepository) -> None:
+    def __init__(self, repo: UserRepository, email_svc: EmailService) -> None:
         self._repo = repo
+        self._email_svc = email_svc
 
     async def register(
         self, username: str, email: str, password: str
@@ -34,20 +43,49 @@ class AuthService:
         if await self._repo.get_by_username(username):
             raise UsernameTaken("Username already taken")
 
+        token = create_verification_token(email)
+
         user = await self._repo.add(
             UserTable(
                 username=username,
                 email=email,
                 hashed_password=_hash_password(password),
+                email_verified=False,
+                verification_token=token,
             )
         )
-        logger.info("User %s registered", user.id)
+        await self._email_svc.send_verification_email(email, token)
+
+        logger.info("User %s registered, verification email sent", user.id)
         return user
+
+    async def verify_email(self, token: str) -> None:
+        import jwt
+
+        try:
+            email = decode_verification_token(token)
+        except jwt.ExpiredSignatureError:
+            raise InvalidVerificationToken("Verification link has expired")
+        except jwt.InvalidTokenError:
+            raise InvalidVerificationToken("Invalid verification token")
+
+        user = await self._repo.get_by_email(email)
+        if not user:
+            raise InvalidVerificationToken("User not found")
+        if user.email_verified:
+            return
+
+        user.email_verified = True
+        user.verification_token = None
+        await self._repo.update(user)
+        logger.info("User %s verified email", user.id)
 
     async def login(self, email: str, password: str) -> str:
         user = await self._repo.get_by_email(email)
         if not user or not _verify_password(password, user.hashed_password):
             raise InvalidCredentials("Invalid email or password")
+        if not user.email_verified:
+            raise EmailNotVerified("Please verify your email before logging in")
 
         token = create_access_token(subject=user.id)
         logger.info("User %s logged in", user.id)
@@ -56,7 +94,6 @@ class AuthService:
     async def delete_user(self, user_id: int) -> None:
         user = await self._repo.get_by_id(user_id)
         if user is None:
-            raise InvalidCredentials("User is not exists")
-
+            raise InvalidCredentials("User does not exist")
         await self._repo.delete(user)
         logger.info("User %s deleted", user_id)

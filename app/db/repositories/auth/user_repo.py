@@ -32,3 +32,10 @@ class UserRepository:
     async def delete(self, user: UserTable) -> None:
         await self._session.delete(user)
         await self._session.flush()
+
+    async def update(self, user: UserTable) -> UserTable:
+        self._session.add(user)
+        await self._session.flush()
+        await self._session.refresh(user)
+        await self._session.commit()
+        return user

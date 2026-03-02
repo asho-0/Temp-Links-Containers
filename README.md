@@ -23,6 +23,11 @@ Authorization: Bearer <your_token>
 
 ---
 
+## Secret key generation
+```
+python -c "import secrets; print(secrets.token_hex(32))"
+```
+
 ## Docker
 
 The API uses **JWT Bearer tokens**. After logging in, include the token in all protected requests:

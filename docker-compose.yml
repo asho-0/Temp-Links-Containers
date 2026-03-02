@@ -1,6 +1,26 @@
 services:
+  temp_secret_vault:
+    build: .
+    env_file: .env
+    volumes:
+      - .:/app
+    ports:
+      - "8000:8000"
+    environment:
+      - DB_HOST=db
+      - DB_PORT=5432
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_started
+    command: fastapi run app/run.py 
+
   db:
-    image: postgres:16
+    image: postgres:16-alpine
     environment:
       POSTGRES_USER: ${DB_USER}
       POSTGRES_PASSWORD: ${DB_PASS}
@@ -15,23 +35,25 @@ services:
       timeout: 5s
       retries: 5
 
-  temp_secret_vault:
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+
+  worker:
     build: .
     env_file: .env
-    volumes:
-      - .:/app
-    environment:
-      - DB_HOST=db
-      - DB_PORT=5432
-      - DB_USER=${DB_USER}
-      - DB_PASS=${DB_PASS}
-      - DB_NAME=${DB_NAME}
-      - DB_POSTGRES=${DB_NAME}
-    ports:
-      - "8000:8000"
     depends_on:
-      db:
-        condition: service_healthy
-    command: uvicorn app.run:app --host 0.0.0.0 --port 8000 --reload
+      - redis
+      - db
+    command: celery -A app.tasks.celery_app worker --loglevel=info
+
+  beat:
+    build: .
+    env_file: .env
+    depends_on:
+      - redis
+    command: celery -A app.tasks.celery_app beat --loglevel=info
+
 volumes:
   postgres_data:
