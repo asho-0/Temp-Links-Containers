@@ -1,6 +1,5 @@
 import base64
 import logging
-from datetime import datetime
 from typing import Any
 
 from sqlalchemy import delete, select, update, Sequence
@@ -36,14 +35,12 @@ class SecretRepository:
         *,
         creator_id: int,
         title: str,
-        expires_at: datetime,
         encrypted_payload: dict[str, str],
     ) -> SecretTable:
         enc = _encode_for_db(encrypted_payload)
         secret = SecretTable(
             title=title,
             creator_id=creator_id,
-            expires_at=expires_at,
             **enc,
         )
         self._session.add(secret)
@@ -88,7 +85,6 @@ class SecretRepository:
                 SecretTable.title,
                 SecretTable.is_read,
                 SecretTable.created_at,
-                SecretTable.expires_at,
             )
             .where(SecretTable.creator_id == owner_id)
             .order_by(SecretTable.created_at.desc())
@@ -97,3 +93,11 @@ class SecretRepository:
 
     def decode_payload(self, row: SecretTable) -> dict[str, str]:
         return _decode_from_db(row)
+
+    async def exists_for_owner(self, secret_id: int, owner_id: int) -> bool:
+        return (
+            await self.get_by_id_and_owner(
+                secret_id=secret_id, owner_id=owner_id
+            )
+            is not None
+        )

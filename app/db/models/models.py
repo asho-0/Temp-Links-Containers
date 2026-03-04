@@ -42,7 +42,6 @@ class SecretTable(Base):
     created_at: Mapped[DateTime] = mapped_column(
         DateTime, server_default=func.now()
     )
-    expires_at: Mapped[DateTime] = mapped_column(DateTime, nullable=False)
     is_read: Mapped[bool] = mapped_column(Boolean, default=False)
 
     user: Mapped["UserTable"] = relationship(

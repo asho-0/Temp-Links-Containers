@@ -1,5 +1,4 @@
 import logging
-from datetime import datetime, timezone
 
 from app.bl.encryption.encrypter import get_strategy
 from app.bl.encryption.base_strategy import EncryptionStrategy
@@ -20,7 +19,6 @@ class SecretService:
         title: str,
         plaintext: str,
         password: str,
-        expires_at: datetime,
         paranoid: bool = True,
     ) -> SecretTable:
         strategy: EncryptionStrategy = get_strategy(password, paranoid=paranoid)
@@ -29,7 +27,6 @@ class SecretService:
         secret = await self._repo.add(
             creator_id=creator_id,
             title=title,
-            expires_at=expires_at,
             encrypted_payload=encrypted_payload,
         )
         logger.info(
@@ -57,29 +54,21 @@ class SecretService:
         *,
         secret_id: int,
         owner_id: int,
-        password: str,
-        paranoid: bool = True,  # ← выбор стратегии
+        password: str | None,
+        paranoid: bool = True,
     ) -> tuple[SecretTable, str]:
-        """
-        Raises:
-            PermissionError  — не найден или чужой владелец
-            ValueError       — секрет истёк
-            InvalidTag       — неверный пароль (пробрасывается на роут)
-        """
         secret = await self._repo.get_by_id_and_owner(
             secret_id=secret_id, owner_id=owner_id
         )
+
         if secret is None:
             raise PermissionError(
                 f"Secret {secret_id} not found or access denied."
             )
 
-        if secret.expires_at.replace(tzinfo=timezone.utc) < datetime.now(
-            timezone.utc
-        ):
-            raise ValueError("This secret has expired.")
-
-        strategy: EncryptionStrategy = get_strategy(password, paranoid=paranoid)
+        strategy: EncryptionStrategy = get_strategy(
+            password or "", paranoid=paranoid
+        )
         plaintext = strategy.decrypt(self._repo.decode_payload(secret))
 
         if not secret.is_read:
@@ -87,3 +76,8 @@ class SecretService:
             logger.info("Secret %s marked as read", secret_id)
 
         return secret, plaintext
+
+    async def exists_for_owner(self, secret_id: int, owner_id: int) -> bool:
+        return await self._repo.exists_for_owner(
+            secret_id=secret_id, owner_id=owner_id
+        )

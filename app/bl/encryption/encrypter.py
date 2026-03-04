@@ -91,12 +91,6 @@ class ParanoidStrategy(EncryptionStrategy):
 
 
 def get_strategy(password: str, paranoid: bool = True) -> EncryptionStrategy:
-    """
-    Фабрика стратегий. Оба класса принимают password: str — интерфейс унифицирован.
-
-    paranoid=True  → AES-256-GCM, случайная соль на каждый encrypt (рекомендуется)
-    paranoid=False → Fernet, чуть быстрее, детерминированный ключ
-    """
     return (
         ParanoidStrategy(password) if paranoid else StandardStrategy(password)
     )
