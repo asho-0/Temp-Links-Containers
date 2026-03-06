@@ -4,7 +4,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.db.session import db_dependency, transaction
 from app.db.repositories.auth.user_repo import UserRepository
 from app.services.auth import AuthService
-from app.services.auth.email import EmailService
 from app.db.schemas.auth_schm import (
     UserRegisterScheme,
     UserLoginScheme,
@@ -27,7 +26,6 @@ def get_auth_service(
 ) -> AuthService:
     return AuthService(
         repo=UserRepository(session),
-        email_svc=EmailService(),
     )
 
 

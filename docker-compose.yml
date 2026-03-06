@@ -46,7 +46,7 @@ services:
     depends_on:
       - redis
       - db
-    command: celery -A app.tasks.celery_app worker --loglevel=info
+    command: celery -A app.tasks.worker worker --loglevel=info
 
   beat:
     build: .

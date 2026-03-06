@@ -10,7 +10,7 @@ from app.core.security import (
     create_verification_token,
     decode_verification_token,
 )
-from app.services.auth.email import EmailService
+from app.tasks.worker import send_verification_email_task
 from app.services.auth.exceptions import (
     EmailAlreadyRegistered,
     UsernameTaken,
@@ -31,13 +31,10 @@ def _verify_password(password: str, hashed: str) -> bool:
 
 
 class AuthService:
-    def __init__(self, repo: UserRepository, email_svc: EmailService) -> None:
+    def __init__(self, repo: UserRepository) -> None:
         self._repo = repo
-        self._email_svc = email_svc
 
-    async def register(
-        self, username: str, email: str, password: str
-    ) -> UserTable:
+    async def register(self, username: str, email: str, password: str) -> UserTable:
         if await self._repo.get_by_email(email):
             raise EmailAlreadyRegistered("Email already registered")
         if await self._repo.get_by_username(username):
@@ -54,9 +51,10 @@ class AuthService:
                 verification_token=token,
             )
         )
-        await self._email_svc.send_verification_email(email, token)
 
-        logger.info("User %s registered, verification email sent", user.id)
+        send_verification_email_task.delay(email, token)
+
+        logger.info("User %s registered, verification email queued", user.id)
         return user
 
     async def verify_email(self, token: str) -> None:

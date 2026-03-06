@@ -37,8 +37,6 @@ make build
 make dev
 ```
 
----
-
 ## Endpoints
 
 ### 🔑 Auth
@@ -48,6 +46,43 @@ make dev
 | `POST` | `/auth/register` | Register a new user account |
 | `POST` | `/auth/login` | Login and receive a JWT token |
 | `DELETE` | `/auth/delete` | Delete the authenticated user's account |
+
+---
+#### Register
+```http
+POST /auth/register
+Content-Type: application/json
+
+{
+  "username": "string",
+  "email": "user@example.com",
+  "password": "stringst"
+}
+```
+
+#### Login
+```http
+POST /auth/login
+Content-Type: application/json
+
+{
+  "email": "user@example.com",
+  "password": "string"
+}
+```
+**Response:**
+```json
+{
+  "access_token": "eyJhbGciOiJIUzI1NiIs...",
+  "token_type": "bearer"
+}
+```
+
+#### Delete account
+```http
+DELETE /auth/delete
+Authorization: Bearer <token>
+```
 
 ---
 

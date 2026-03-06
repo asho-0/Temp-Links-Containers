@@ -28,7 +28,7 @@ class Settings(BaseSettings):
     APP_BASE_URL: str
 
     # Redis settings
-    REDIS_HOST: str = "localhost"
+    REDIS_HOST: str = "redis"
     REDIS_PORT: int = 6379
     REDIS_DB: int = 0
 

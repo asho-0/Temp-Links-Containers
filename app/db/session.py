@@ -5,6 +5,8 @@ from typing import AsyncIterator, Optional
 
 from fastapi import FastAPI
 from sqlalchemy.exc import SQLAlchemyError
+from sqlalchemy.orm import sessionmaker
+from sqlalchemy import create_engine
 from sqlalchemy.ext.asyncio import (
     AsyncSession,
     async_sessionmaker,
@@ -16,13 +18,25 @@ from app.db.exceptions import DBPoolError, DBSessionError, DBTransactionError
 
 logger = logging.getLogger(__name__)
 
-engine = create_async_engine(
+async_engine = create_async_engine(
     settings.DATABASE_URL_asyncpg,
     **settings.engine_options,
 )
 
+sync_engine = create_engine(
+    settings.DATABASE_URL_psycopg,  
+    **settings.engine_options,
+)
+
+SyncSessionLocal = sessionmaker(
+    bind=sync_engine,
+    autocommit=False,
+    autoflush=False,
+    expire_on_commit=False,
+)
+
 AsyncSessionLocal = async_sessionmaker(
-    bind=engine,
+    bind=async_engine,
     class_=AsyncSession,
     expire_on_commit=False,
     autoflush=False,
@@ -49,7 +63,7 @@ def get_session() -> AsyncSession:
 async def db_lifespan(app: FastAPI) -> AsyncIterator[None]:
     logger.info("Connecting to database…")
     try:
-        async with engine.connect() as conn:
+        async with async_engine.connect() as conn:
             await conn.run_sync(lambda _: None)
         logger.info("Database connection pool ready")
     except SQLAlchemyError as exc:
@@ -58,7 +72,7 @@ async def db_lifespan(app: FastAPI) -> AsyncIterator[None]:
 
     yield
 
-    await engine.dispose()
+    await async_engine.dispose()
     logger.info("Database connection pool closed")
 
 
