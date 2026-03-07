@@ -1,4 +1,3 @@
-# app/services/auth/auth_service.py
 import logging
 
 import bcrypt
@@ -34,7 +33,9 @@ class AuthService:
     def __init__(self, repo: UserRepository) -> None:
         self._repo = repo
 
-    async def register(self, username: str, email: str, password: str) -> UserTable:
+    async def register(
+        self, username: str, email: str, password: str
+    ) -> UserTable:
         if await self._repo.get_by_email(email):
             raise EmailAlreadyRegistered("Email already registered")
         if await self._repo.get_by_username(username):

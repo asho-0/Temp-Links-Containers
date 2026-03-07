@@ -1,5 +1,5 @@
 services:
-  temp_secret_vault:
+  temp_secret_links:
     build: .
     env_file: .env
     volumes:

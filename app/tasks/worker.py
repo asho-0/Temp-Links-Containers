@@ -5,7 +5,12 @@ from app.tasks.celery_app import celery_app
 logger = logging.getLogger(__name__)
 
 
-@celery_app.task(name="send_verification_email", bind=True, max_retries=3, default_retry_delay=60)
+@celery_app.task(
+    name="send_verification_email",
+    bind=True,
+    max_retries=3,
+    default_retry_delay=60,
+)
 def send_verification_email_task(self, email: str, token: str):
     import asyncio
     from app.services.auth.email import EmailService

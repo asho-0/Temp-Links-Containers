@@ -1,4 +1,4 @@
-# Temp-Links-Containers
+# Temp-Secrets-Links
 A robust, asynchronous REST API built with FastAPI for secure storage and management of encrypted secrets.
 
 # 🔐 Secrets API
@@ -185,6 +185,12 @@ Anyone with the link can read the secret — no login needed
 | `422` | Validation Error or decryption failure |
 
 ---
+
+## Tests
+
+```
+python3 -m pytest -vv tests
+```
 
 ## Tech Stack
 

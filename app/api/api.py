@@ -94,7 +94,7 @@ async def decrypt_secret(
             "decrypt failed | secret=%s user=%s", secret_id, current_user_id
         )
         raise HTTPException(
-            status_code=status.HTTP_422_UNPROCESSABLE_ENTITY,
+            status_code=status.HTTP_422_UNPROCESSABLE_CONTENT,
             detail="Decryption failed: wrong password or corrupted data.",
         )
 

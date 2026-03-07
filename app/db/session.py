@@ -24,7 +24,7 @@ async_engine = create_async_engine(
 )
 
 sync_engine = create_engine(
-    settings.DATABASE_URL_psycopg,  
+    settings.DATABASE_URL_psycopg,
     **settings.engine_options,
 )
 
